@@ -1,2 +1,10 @@
 # Seismic-Extreme-Values-RUSIS
-Supplementary materials for our technical report for Extreme Value Theory for Seismic Risk in the Veracruz Region. README has important disclaimers about the research conducted.
+This work was supported by NSF grant DMS-2244093 to Dr. Javier Rojo through the RUSIS@IU program.  
+
+We thank Dr. Javier Rojo for organizing and leading the program, and Dr. Sergio Juarez from Universidad Veracruzana for his guidance and mentorship throughout this project.
+
+We also acknowledge Indiana University and the Department of Statistics and Data Sciences for providing the computational and academic resources that made this research possible. This work was carried out during the 2025 RUSIS@IU summer research program at Indiana University.
+
+This project was conducted in collaboration with Marissa Kroeger, Adrian Bautista, Edgar Moya, and Luis Conde Meza. All authors contributed equally to the development, modeling, and writing efforts.
+
+This repository houses the supplementary materials referenced in the paper, for ease of viewing the code and the dataset analyzed, which was provided by our advisor Dr. Sergio Juarez from the department of Seismology and Vulcanology in the University of Veracruz, with data from 1919 through 2024. 
