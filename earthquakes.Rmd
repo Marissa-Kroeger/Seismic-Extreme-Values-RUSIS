@@ -1,0 +1,218 @@
+---
+title: "Earthquakes"
+author: "Marissa Kroeger, Luis Conde Meza, Edgar Moya, Adrian Bautista, advisor: Dr. Sergio Juarez"
+date: "2025-07-08"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ismev)
+library(readxl)
+library(DataExplorer)
+library(lubridate)
+library(dplyr)
+
+# set the path for where you have the excel document downloaded on your device
+path = ""
+df <- read_excel(path)
+```
+
+```{r}
+df <- df[, c("Fecha", "Magnitud")] # select the columns of interest
+
+# create a column for the year
+df <- df %>%
+  mutate(Year = year(Fecha))
+
+# Filter out NAs
+df <- df %>%
+  filter(!is.na(Magnitud))
+
+# View the number of valid entries per year to see when sufficient data is available
+hist(df$Year, breaks = seq(min(df$Year) -1 , max(df$Year), by = 1), main = "Years by Data on Magnitude", xlab = "Year")
+
+df <- df %>%
+ filter(Year >= 1988)
+
+# View the magnitude distribution
+hist(df$Magnitud, breaks = seq(min(df$Magnitud), max(df$Magnitud), by = .1), main = "Histogram of Magnitude", xlab = "Magnitude (Richter)")
+```
+
+# GEVD Fit
+
+## Extract Maxima
+```{r}
+years <- seq(1988,2024)
+N <- length(years)
+
+yearly_maxima <- vector("list", N)
+
+# Extract maxima for each year
+for(i in 1:N) {
+ year <- df %>%
+   filter(Year == years[i])
+ 
+ index <- which.max(year$Magnitud)
+ 
+ yearly_maxima[[i]] <- year[index,]
+}
+
+yearly_maxima = dplyr::bind_rows(yearly_maxima) # combine into a tibble
+
+yearly_maxima
+```
+
+
+## Fit Model
+```{R}
+# Fitting the GEVD
+fit <- gev.fit(yearly_maxima$Magnitud)
+
+summary(fit)
+```
+
+## Diagnostics
+```{r}
+V = fit$cov
+round(V,5)
+
+gev.diag(fit)
+```
+
+## Predict Return Values
+```{r}
+# Return values
+
+mu.hat <- fit$mle[1]
+sigma.hat <- fit$mle[2]
+xi.hat <- fit$mle[3]
+V <- fit$cov
+V
+
+ps <- c(1/10,1/20,1/30,1/40,1/50,1/60,1/70,1/80,1/90,1/100)
+Level <- 0
+Linf <- 0
+Lsup <- 0
+
+for(i in 1:length(ps)){
+  p <- ps[i]
+  
+  # quantile function
+  return = mu.hat - (sigma.hat/xi.hat)*(1- ((-log(1-p))^(-xi.hat)))
+  
+  # delta method to estimate the SD
+  nabla <- c(1,
+  (-1/xi.hat)*(1-(-log(1-p))^(-xi.hat)), 
+  (sigma.hat/xi.hat^2)*((1-(-log(1-p))^(-xi.hat)))
+  -(sigma.hat/xi.hat)*((-log(1-p))^(-xi.hat))*(log(-log(1-p))))
+  
+  sd <-sqrt(as.vector(nabla)%*%V%*%as.vector(t(nabla)))
+  li <- return - 2*sd
+  ls <- return + 2*sd
+  
+  Level[i] <- return
+  Linf[i] <- li
+  Lsup[i] <- ls
+}
+
+data.frame(Period = 1/ps, Level = round(Level,2), 
+Linf <- round(Linf,2), Lsup = round(Lsup,2), dif = round(Lsup-Linf,2))  
+```
+
+# GPD Model
+
+## Selecting A Threshold
+
+Mean Life Excess Approach:
+```{r}
+mrl.plot(df$Magnitud, umin = min(df$Magnitud), umax = max(df$Magnitud), conf = .95, nint = 100)
+```
+One approach is to choose u such that for x > u, the MRL plot is approximately linear. This point seems to be around 5.8, which is too extreme of a quantile for our data to create an appropriate model, since this will cause biased predictions.
+
+Stability Plot Approach (discussed in Modelling Extremal Values)
+```{R}
+gpd.fitrange(df$Magnitud, 4, 5, nint = 31)
+```
+Since the estimates are fairly constant after 4.6, so we should consider u > 4.6 (taking into account that higher values will have higher bias) 
+
+```{r}
+U <- seq(4.6, 4.9, by = .1)
+
+
+for (u in U){
+  excedances <- df[df$Magnitud > u, ]
+  
+  fit.gpd <- gpd.fit(excedances$Magnitud,u)
+  
+  gpd.diag(fit.gpd)
+}
+```
+
+```{r}
+# Based on these diagnostics
+u <- 4.6
+excedances <- df[df$Magnitud > u, ]
+fit.gpd <- gpd.fit(excedances$Magnitud,u)
+gpd.diag(fit.gpd)
+```
+
+
+```{r}
+V <- fit.gpd$cov
+V
+
+# Return levels
+pi.hat <- fit.gpd$nexc/length(df$Magnitud) # proportion of excesses
+beta.hat <- fit.gpd$mle[1]
+xi.hat <- fit.gpd$mle[2]
+
+# addint our proportion to the covariance matrix
+V <- matrix(0,nrow=3,ncol=3)
+V[1,1] <- pi.hat*(1-pi.hat)/length(df$Magnitud)
+V[2,2] <- fit.gpd$cov[1,1]
+V[3,3] <- fit.gpd$cov[2,2]
+V[2,3] <- fit.gpd$cov[1,2]
+V[3,2] <- fit.gpd$cov[1,2]
+V
+```
+
+
+
+```{R}
+N <- seq(10,100,10)
+
+ms <- N*365
+
+Level <- 0
+Linf <- 0
+Lsup <- 0
+for(i in 1:length(ms)){
+  m <- ms[i]
+  
+  # quantile function
+  return <- u + (beta.hat/xi.hat)*((m*pi.hat)^(xi.hat)-1)
+  
+  # using the delta method to estimate the SD
+  nabla <- c(
+    beta.hat*(m^xi.hat)*(pi.hat^(xi.hat-1)),
+    
+    (1/xi.hat)*(((m*pi.hat)^(xi.hat))-1), 
+    
+    -(beta.hat/(xi.hat^2))*(((m*pi.hat)^(xi.hat))-1)+
+    (beta.hat/xi.hat)*(m*pi.hat)^(xi.hat)*log(m*pi.hat))
+  
+  sd <- sqrt(as.vector(nabla)%*%V%*%as.vector(t(nabla)))
+  li <- return - 2*sd
+  ls <- return + 2*sd
+  
+  Level[i] <- return
+  Linf[i] <- li
+  Lsup[i] <- ls
+}
+
+data.frame(Period = N, Level = round(Level,2), 
+Linf <- round(Linf,2), Lsup = round(Lsup,2), dif = round(Lsup-Linf,2)) 
+```
+
+
