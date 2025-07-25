@@ -3,7 +3,7 @@ This work was supported by NSF grant DMS-2244093 to Dr. Javier Rojo through the 
 
 We thank Dr. Javier Rojo for organizing and leading the program, and Dr. Sergio Juarez from Universidad Veracruzana for his guidance and mentorship throughout this project.
 
-We also acknowledge Indiana University and the Department of Statistics and Data Sciences for providing the computational and academic resources that made this research possible. This work was carried out during the 2025 RUSIS@IU summer research program at Indiana University.
+We also acknowledge Indiana University and the Department of Epidemiology and Biostatistics for providing the computational and academic resources that made this research possible. This work was carried out during the 2025 RUSIS@IU summer research program at Indiana University.
 
 This project was conducted in collaboration with Marissa Kroeger, Adrian Bautista, Edgar Moya, and Luis Conde Meza. All authors contributed equally to the development, modeling, and writing efforts.
 
