@@ -1,7 +1,10 @@
 # Seismic-Extreme-Values-RUSIS
 This work was supported by NSF grant DMS-2244093 to Dr. Javier Rojo through the RUSIS@IU program.  
 
-We thank Dr. Javier Rojo for organizing and leading the program, and Dr. Sergio Juarez from Universidad Veracruzana for his guidance and mentorship throughout this project.
+We thank Dr. Javier Rojo for organizing and leading the program, and Dr. Sergio Juarez from Veracruz University for his guidance and mentorship throughout this project.
+
+
+We acknowledge the source of the data: the National Seismic Service of Mexico.
 
 We also acknowledge Indiana University and the Department of Epidemiology and Biostatistics for providing the computational and academic resources that made this research possible. This work was carried out during the 2025 RUSIS@IU summer research program at Indiana University.
 
