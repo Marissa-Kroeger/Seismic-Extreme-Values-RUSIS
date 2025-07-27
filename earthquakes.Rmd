@@ -1,6 +1,6 @@
 ---
 title: "Earthquakes"
-author: "Marissa Kroeger, Luis Conde Meza, Edgar Moya, Adrian Bautista, advisor: Dr. Sergio Juarez"
+authors: "Marissa Kroeger"
 date: "2025-07-08"
 output: pdf_document
 ---
@@ -12,10 +12,7 @@ library(readxl)
 library(DataExplorer)
 library(lubridate)
 library(dplyr)
-
-# set the path for where you have the excel document downloaded on your device
-path = ""
-df <- read_excel(path)
+df <- read_excel("C:/Users/ual-laptop/Documents/sismos.xlsx")
 ```
 
 ```{r}
@@ -24,19 +21,21 @@ df <- df[, c("Fecha", "Magnitud")] # select the columns of interest
 # create a column for the year
 df <- df %>%
   mutate(Year = year(Fecha))
+dim(df)
 
-# Filter out NAs
 df <- df %>%
   filter(!is.na(Magnitud))
 
-# View the number of valid entries per year to see when sufficient data is available
+year_counts <- df %>%
+  count(Year)
+
 hist(df$Year, breaks = seq(min(df$Year) -1 , max(df$Year), by = 1), main = "Years by Data on Magnitude", xlab = "Year")
+
 
 df <- df %>%
  filter(Year >= 1988)
 
-# View the magnitude distribution
-hist(df$Magnitud, breaks = seq(min(df$Magnitud), max(df$Magnitud), by = .1), main = "Histogram of Magnitude", xlab = "Magnitude (Richter)")
+dim(df)
 ```
 
 # GEVD Fit
@@ -47,26 +46,29 @@ years <- seq(1988,2024)
 N <- length(years)
 
 yearly_maxima <- vector("list", N)
-
 # Extract maxima for each year
 for(i in 1:N) {
  year <- df %>%
    filter(Year == years[i])
- 
  index <- which.max(year$Magnitud)
- 
  yearly_maxima[[i]] <- year[index,]
 }
-
 yearly_maxima = dplyr::bind_rows(yearly_maxima) # combine into a tibble
 
 yearly_maxima
+```
+
+## Histogram
+
+```{r}
+hist(df$Magnitud, breaks = seq(min(df$Magnitud), max(df$Magnitud), by = .1), main = "Histogram of Magnitude", xlab = "Magnitude (Richter)")
 ```
 
 
 ## Fit Model
 ```{R}
 # Fitting the GEVD
+
 fit <- gev.fit(yearly_maxima$Magnitud)
 
 summary(fit)
@@ -99,7 +101,7 @@ for(i in 1:length(ps)){
   p <- ps[i]
   
   # quantile function
-  return = mu.hat - (sigma.hat/xi.hat)*(1- ((-log(1-p))^(-xi.hat)))
+  return = mu.hat-(sigma.hat/xi.hat)*(1-((-log(1-p))^(-xi.hat)))
   
   # delta method to estimate the SD
   nabla <- c(1,
@@ -128,11 +130,12 @@ Mean Life Excess Approach:
 ```{r}
 mrl.plot(df$Magnitud, umin = min(df$Magnitud), umax = max(df$Magnitud), conf = .95, nint = 100)
 ```
-One approach is to choose u such that for x > u, the MRL plot is approximately linear. This point seems to be around 5.8, which is too extreme of a quantile for our data to create an appropriate model, since this will cause biased predictions.
+Book indicates to choose u such that for x > u, the MRL plot is approx. linear. This point seems to be around 5.8, which is too extreme of a quantile for our data to create an appropriate model, since this will cause biased predictions.
 
 Stability Plot Approach (discussed in Modelling Extremal Values)
 ```{R}
-gpd.fitrange(df$Magnitud, 4, 5, nint = 31)
+
+gpd.fitrange(df$Magnitud, 4, 5, nint = 30)
 ```
 Since the estimates are fairly constant after 4.6, so we should consider u > 4.6 (taking into account that higher values will have higher bias) 
 
@@ -148,7 +151,6 @@ for (u in U){
   gpd.diag(fit.gpd)
 }
 ```
-
 ```{r}
 # Based on these diagnostics
 u <- 4.6
@@ -190,10 +192,8 @@ Lsup <- 0
 for(i in 1:length(ms)){
   m <- ms[i]
   
-  # quantile function
   return <- u + (beta.hat/xi.hat)*((m*pi.hat)^(xi.hat)-1)
   
-  # using the delta method to estimate the SD
   nabla <- c(
     beta.hat*(m^xi.hat)*(pi.hat^(xi.hat-1)),
     
